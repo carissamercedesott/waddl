@@ -35,9 +35,9 @@ def current_streak(days):
 if __name__ == "__main__":
     # Two different learners each log a single session.
     amir = log_practice(20)
-    bela = log_practice(15)
+    carissa = log_practice(15)
     print("Amir's sessions:", amir)
-    print("Bela's sessions:", bela)
+    print("Carissa's sessions:", carissa)
 
     # Back up Amir's progress, then he practices once more.
     saved = back_up(amir)

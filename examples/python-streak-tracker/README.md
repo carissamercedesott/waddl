@@ -48,12 +48,12 @@ rm -rf ~/.duckling      # optional: a clean slate for the recording
 **Scene 1 — the shared list (mutation).** Prompt:
 
 ```text
-In examples/python-streak-tracker/streak.py, run it — why do Amir and Bela
+In examples/python-streak-tracker/streak.py, run it — why do Amir and Carissa
 end up with the same sessions? Is this a mutation / shared-object thing?
 ```
 
 Duckling replies with the indicator **🦆 Mental Model Mode** and asks you to
-predict *before* explaining, e.g. "What does `Bela's sessions:` print — (a)
+predict *before* explaining, e.g. "What does `Carissa's sessions:` print — (a)
 `[15]`, (b) `[20, 15]`, (c) an error?" Pick **(a)** on camera (the intuitive
 wrong answer), give a confidence, and it runs the file to show reality. The
 repair is one line; the pattern is one line.
@@ -104,7 +104,7 @@ Running the unfixed file prints:
 
 ```text
 Amir's sessions: [20, 15]
-Bela's sessions: [20, 15]
+Carissa's sessions: [20, 15]
 Amir now:        [20, 15, 30]
 Backup:          [20, 15, 30]
 Current streak:  3 days
@@ -112,7 +112,7 @@ Current streak:  3 days
 
 **Task 1 (mutation).** `def log_practice(minutes, session=[])` — the default
 list is created **once**, at definition time, and reused on every call that
-omits `session`. So Amir and Bela append into the *same* list. Fix:
+omits `session`. So Amir and Carissa append into the *same* list. Fix:
 
 ```python
 def log_practice(minutes, session=None):
