@@ -4,7 +4,7 @@ The research materials and writing in this project — everything under the
 `docs/` and `studies/` directories — are licensed under the Creative
 Commons Attribution 4.0 International License (CC BY 4.0).
 
-**Copyright 2026 Carissa Ott.**
+**Copyright 2026 Carissa Ott** (carissaott0809@gmail.com).
 
 You are free to:
 

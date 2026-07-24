@@ -153,8 +153,7 @@ interested in developer tools, human–computer interaction, and the
 learning sciences. Waddl grew out of a personal question: how do we
 build AI assistants that make us *more* capable over time, not less?
 
-_(Feel free to expand this section with your own bio, links, and
-research interests.)_
+**Contact:** carissaott0809@gmail.com · GitHub [@carissamercedesott](https://github.com/carissamercedesott)
 
 ## Disclaimer
 
