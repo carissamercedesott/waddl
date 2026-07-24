@@ -1,0 +1,16 @@
+{
+  "name": "waddl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source research project exploring how AI coding tools can support problem-solving without replacing the thinking that helps people learn.",
+  "license": "Apache-2.0",
+  "author": "Carissa Ott",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/carissamercedesott/waddl.git"
+  },
+  "workspaces": [
+    "packages/*",
+    "website"
+  ]
+}

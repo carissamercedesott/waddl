@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "Waddl: AI coding assistance that supports learning"
+message: "If you use Waddl in your research, please cite it as below."
+type: software
+authors:
+  - given-names: Carissa
+    family-names: Ott
+abstract: >-
+  Waddl is an open-source research project exploring how AI coding tools
+  can support problem-solving without replacing the thinking that helps
+  people learn. It develops and evaluates interaction patterns such as
+  adaptive hints, self-explanation prompts, assistance fading, and
+  reflection checkpoints, delivered inside a real coding workflow via a
+  Claude Code plugin.
+keywords:
+  - learning sciences
+  - developer tools
+  - human-computer interaction
+  - AI coding assistants
+  - desirable difficulties
+  - scaffolding
+license: Apache-2.0
+repository-code: "https://github.com/carissamercedesott/waddl"
+url: "https://github.com/carissamercedesott/waddl"
+version: "0.1.0"
+date-released: "2026-07-23"

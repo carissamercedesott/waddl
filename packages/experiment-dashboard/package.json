@@ -1,0 +1,8 @@
+{
+  "name": "@waddl/experiment-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard for exploring anonymized, aggregated results from Waddl studies.",
+  "license": "Apache-2.0",
+  "author": "Carissa Ott"
+}

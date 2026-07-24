@@ -1,0 +1,13 @@
+{
+  "name": "@waddl/learning-engine",
+  "version": "0.1.0",
+  "description": "Framework-agnostic logic for Waddl's learning-focused interaction patterns: hint laddering, assistance fading, and a lightweight learner model.",
+  "license": "Apache-2.0",
+  "author": "Carissa Ott",
+  "keywords": [
+    "learning-sciences",
+    "scaffolding",
+    "adaptive-hints",
+    "developer-tools"
+  ]
+}

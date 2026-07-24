@@ -1,0 +1,16 @@
+{
+  "name": "@waddl/claude-code-plugin",
+  "version": "0.1.0",
+  "description": "Claude Code plugin delivering Waddl's learning-focused interaction patterns.",
+  "license": "Apache-2.0",
+  "author": "Carissa Ott",
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "learning",
+    "developer-tools"
+  ],
+  "dependencies": {
+    "@waddl/learning-engine": "0.1.0"
+  }
+}
