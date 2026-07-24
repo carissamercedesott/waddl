@@ -48,7 +48,8 @@ are marked with `@todo` or throw a clear "not implemented" error. See
 
 ```bash
 npm install
-npm run typecheck   # tsc --noEmit — passes today
+npm run typecheck   # tsc --noEmit
+npm test            # node:test via tsx — session FSM, concept detection, analytics
 npm run build       # emits dist/ (JS + .d.ts)
 ```
 

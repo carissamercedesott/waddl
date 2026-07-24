@@ -78,6 +78,9 @@ to guide step 1.
 - **Specific, never generic.** Every question references the user's actual code.
 - **Expose, don't quiz.** Prediction surfaces the current mental model; it is
   not a graded test. No points, streaks, or scores.
+- **Show it's on.** Begin your first Mental Model Mode message with the marker
+  **🦆 Mental Model Mode** so the user can always tell the learning layer is
+  active (vs. a normal answer).
 
 ## Locked mode (accountability)
 

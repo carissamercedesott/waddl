@@ -68,6 +68,30 @@ including the transfer outcome the project measures.
 - **Inspect your data:** `duckling log` lists recent sessions; `duckling summary`
   reports the running transfer rate.
 
+### Always-on + how to tell it's active
+
+You don't have to retype `/duckling:mental-model` each time. The plugin ships a
+`UserPromptSubmit` hook that, on a **conceptually important** prompt, reliably
+runs Mental Model Mode before Claude answers (and stays silent on trivial
+prompts). It's **on by default**.
+
+```bash
+duckling gate      # -> {"enforced":false,"alwaysOn":true}
+duckling off       # stop auto-running (manual /duckling:mental-model still works)
+duckling on        # re-enable
+```
+
+**Two indicators that it's active:**
+- **Reply marker (no setup):** every Mental Model Mode reply begins with
+  **🦆 Mental Model Mode**. If you don't see the duck, you got a normal answer.
+- **Persistent status line (optional):** add this to your Claude Code
+  `settings.json` for an always-visible indicator (`🦆 duckling on` / `off`):
+  ```json
+  { "statusLine": { "type": "command", "command": "duckling statusline" } }
+  ```
+  (`duckling` must resolve on the status line's `PATH`; otherwise use the
+  absolute path to `bin/duckling`.)
+
 ### Locked / accountability mode
 
 A mentor, teacher, or the user themselves can lock Learn Mode on so it can't be

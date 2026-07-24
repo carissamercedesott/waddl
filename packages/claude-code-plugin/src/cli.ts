@@ -23,7 +23,20 @@ import {
   type Confidence,
   type SessionState,
 } from "@waddl/learning-engine";
+import { readFileSync } from "node:fs";
 import { FileStore } from "./file-store.js";
+
+/** The marker Claude prefixes onto Mental Model Mode replies, so it's visible. */
+const MARKER = "🦆 Mental Model Mode";
+
+/** Read piped stdin (hook/statusline payloads); empty string if none. */
+const readStdin = (): string => {
+  try {
+    return readFileSync(0, "utf8");
+  } catch {
+    return "";
+  }
+};
 
 interface Args {
   positional: string[];
@@ -181,9 +194,54 @@ const main = (): void => {
       return;
     }
 
-    // --- accountability lock (a commitment device, not hard security) ---
+    // --- always-on + indicator ------------------------------------------
     case "gate": {
-      emit({ enforced: store.isEnforced() });
+      emit({ enforced: store.isEnforced(), alwaysOn: store.alwaysOnEnabled() });
+      return;
+    }
+
+    case "on": {
+      store.setAlwaysOn(true);
+      emit({ alwaysOn: true });
+      return;
+    }
+
+    case "off": {
+      if (!store.setAlwaysOn(false)) return fail("locked on; unlock first");
+      emit({ alwaysOn: false });
+      return;
+    }
+
+    // UserPromptSubmit hook: on a conceptual prompt, tell Claude to run the
+    // flow and stamp the marker. Prints nothing otherwise, so it's silent on
+    // ordinary prompts. Never blocks (always exits 0).
+    case "hook": {
+      if (!store.alwaysOnEnabled()) return;
+      let promptText = "";
+      try {
+        promptText = (JSON.parse(readStdin()) as { prompt_text?: string }).prompt_text ?? "";
+      } catch {
+        return;
+      }
+      if (!promptText || !isConceptuallyImportant(promptText)) return;
+      const concept = topConcept(promptText);
+      process.stdout.write(
+        `[Duckling] This request is conceptually important${concept ? ` (${concept})` : ""}. ` +
+          `Run Mental Model Mode BEFORE answering — use the duckling:mental-model skill ` +
+          `(predict → reality → repair → pattern → transfer), do not reveal the answer ` +
+          `until the user predicts, keep the Skip / Show Answer escape hatch, and begin ` +
+          `your reply with "${MARKER}" so the user can see it is active.\n`,
+      );
+      return;
+    }
+
+    // Claude Code statusLine command: a persistent on/off indicator. Prints a
+    // plain line (not JSON) — that's what the status line renders.
+    case "statusline": {
+      readStdin(); // Claude Code pipes session JSON; we don't need it.
+      const lock = store.isEnforced() ? " 🔒" : "";
+      const status = store.alwaysOnEnabled() ? `🦆 duckling on${lock}` : "🦆 duckling off";
+      process.stdout.write(`${status}\n`);
       return;
     }
 
@@ -205,7 +263,8 @@ const main = (): void => {
 
     default:
       fail(
-        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary|gate|lock|unlock> [--id X] [flags]",
+        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|" +
+          "show-answer|skip|status|log|summary|gate|on|off|lock|unlock|hook|statusline> [--id X] [flags]",
       );
   }
 };

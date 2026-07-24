@@ -272,6 +272,9 @@ function summarizeTransfer(sessions) {
   };
 }
 
+// src/cli.ts
+var import_node_fs2 = require("node:fs");
+
 // src/file-store.ts
 var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
@@ -308,7 +311,12 @@ var FileStore = class {
     if (this.isEnforced())
       return false;
     const salt = (0, import_node_crypto.randomBytes)(16).toString("hex");
-    this.writeConfig({ enforced: true, salt, offHash: hashPasscode(salt, passcode) });
+    this.writeConfig({
+      ...this.readConfig(),
+      enforced: true,
+      salt,
+      offHash: hashPasscode(salt, passcode)
+    });
     return true;
   }
   /** Unlock only when the passcode matches. Returns whether it was unlocked. */
@@ -320,7 +328,25 @@ var FileStore = class {
       return false;
     if (hashPasscode(config.salt, passcode) !== config.offHash)
       return false;
-    this.writeConfig({ enforced: false });
+    this.writeConfig({ ...config, enforced: false, salt: void 0, offHash: void 0 });
+    return true;
+  }
+  /**
+   * Whether the always-on hook should auto-run Mental Model Mode. Defaults to
+   * true; a lock forces it on.
+   */
+  alwaysOnEnabled() {
+    const config = this.readConfig();
+    if (config.enforced)
+      return true;
+    return config.alwaysOn !== false;
+  }
+  /** Turn always-on on/off. Turning it off is refused while locked. */
+  setAlwaysOn(on) {
+    const config = this.readConfig();
+    if (config.enforced && !on)
+      return false;
+    this.writeConfig({ ...config, alwaysOn: on });
     return true;
   }
   readStateFile() {
@@ -366,6 +392,14 @@ var FileStore = class {
 };
 
 // src/cli.ts
+var MARKER = "\u{1F986} Mental Model Mode";
+var readStdin = () => {
+  try {
+    return (0, import_node_fs2.readFileSync)(0, "utf8");
+  } catch {
+    return "";
+  }
+};
 var parseArgs = (argv) => {
   const out = { positional: [], flags: {} };
   for (let i = 0; i < argv.length; i++) {
@@ -496,7 +530,44 @@ var main = () => {
       return;
     }
     case "gate": {
-      emit({ enforced: store.isEnforced() });
+      emit({ enforced: store.isEnforced(), alwaysOn: store.alwaysOnEnabled() });
+      return;
+    }
+    case "on": {
+      store.setAlwaysOn(true);
+      emit({ alwaysOn: true });
+      return;
+    }
+    case "off": {
+      if (!store.setAlwaysOn(false))
+        return fail("locked on; unlock first");
+      emit({ alwaysOn: false });
+      return;
+    }
+    case "hook": {
+      if (!store.alwaysOnEnabled())
+        return;
+      let promptText = "";
+      try {
+        promptText = JSON.parse(readStdin()).prompt_text ?? "";
+      } catch {
+        return;
+      }
+      if (!promptText || !isConceptuallyImportant(promptText))
+        return;
+      const concept = topConcept(promptText);
+      process.stdout.write(
+        `[Duckling] This request is conceptually important${concept ? ` (${concept})` : ""}. Run Mental Model Mode BEFORE answering \u2014 use the duckling:mental-model skill (predict \u2192 reality \u2192 repair \u2192 pattern \u2192 transfer), do not reveal the answer until the user predicts, keep the Skip / Show Answer escape hatch, and begin your reply with "${MARKER}" so the user can see it is active.
+`
+      );
+      return;
+    }
+    case "statusline": {
+      readStdin();
+      const lock = store.isEnforced() ? " \u{1F512}" : "";
+      const status = store.alwaysOnEnabled() ? `\u{1F986} duckling on${lock}` : "\u{1F986} duckling off";
+      process.stdout.write(`${status}
+`);
       return;
     }
     case "lock": {
@@ -519,7 +590,7 @@ var main = () => {
     }
     default:
       fail(
-        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary|gate|lock|unlock> [--id X] [flags]"
+        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary|gate|on|off|lock|unlock|hook|statusline> [--id X] [flags]"
       );
   }
 };

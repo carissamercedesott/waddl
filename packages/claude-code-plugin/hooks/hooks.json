@@ -1,0 +1,15 @@
+{
+  "description": "Always-on Mental Model Mode: on a conceptually important prompt, reliably run the learning flow before answering and mark it visibly.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/duckling hook"
+          }
+        ]
+      }
+    ]
+  }
+}

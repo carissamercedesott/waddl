@@ -37,6 +37,8 @@ interface LockConfig {
   enforced: boolean;
   salt?: string;
   offHash?: string;
+  /** When true (the default), the hook auto-runs Mental Model Mode. */
+  alwaysOn?: boolean;
 }
 
 const hashPasscode = (salt: string, passcode: string): string =>
@@ -74,7 +76,12 @@ export class FileStore {
   lock(passcode: string): boolean {
     if (this.isEnforced()) return false;
     const salt = randomBytes(16).toString("hex");
-    this.writeConfig({ enforced: true, salt, offHash: hashPasscode(salt, passcode) });
+    this.writeConfig({
+      ...this.readConfig(),
+      enforced: true,
+      salt,
+      offHash: hashPasscode(salt, passcode),
+    });
     return true;
   }
 
@@ -84,7 +91,25 @@ export class FileStore {
     if (!config.enforced) return true;
     if (!config.salt || !config.offHash) return false;
     if (hashPasscode(config.salt, passcode) !== config.offHash) return false;
-    this.writeConfig({ enforced: false });
+    this.writeConfig({ ...config, enforced: false, salt: undefined, offHash: undefined });
+    return true;
+  }
+
+  /**
+   * Whether the always-on hook should auto-run Mental Model Mode. Defaults to
+   * true; a lock forces it on.
+   */
+  alwaysOnEnabled(): boolean {
+    const config = this.readConfig();
+    if (config.enforced) return true;
+    return config.alwaysOn !== false;
+  }
+
+  /** Turn always-on on/off. Turning it off is refused while locked. */
+  setAlwaysOn(on: boolean): boolean {
+    const config = this.readConfig();
+    if (config.enforced && !on) return false;
+    this.writeConfig({ ...config, alwaysOn: on });
     return true;
   }
 
