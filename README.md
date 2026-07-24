@@ -38,7 +38,14 @@ studies.
 
 ## A 30-second demo
 
-> _Placeholder — a short screen recording / GIF will live here._
+https://github.com/carissamercedesott/waddl/raw/master/docs/media/duckling-demo.mov
+
+<video src="https://github.com/carissamercedesott/waddl/raw/master/docs/media/duckling-demo.mov" controls muted playsinline width="720">
+  Your browser can't play this inline —
+  <a href="https://github.com/carissamercedesott/waddl/raw/master/docs/media/duckling-demo.mov">watch the demo (.mov)</a>.
+</video>
+
+_Prefer text? The same flow, written out:_
 
 ```text
 You:       Why does my useState update not show up until the next click?
