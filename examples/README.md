@@ -1,37 +1,22 @@
 # Examples
 
-Runnable and illustrative examples of Waddl's interaction patterns.
+Runnable walkthroughs of Waddl's interaction patterns.
 
-> **Status: early scaffold.** Examples will be added as the
-> [learning engine](../packages/learning-engine) and
-> [plugin](../packages/claude-code-plugin) take shape.
+## [`mental-model-walkthrough/`](./mental-model-walkthrough)
 
-## Planned examples
+A tiny, self-contained bug that drives [Duckling](../packages/claude-code-plugin)'s
+**Mental Model Mode** end to end — predict → commit → reality → repair → pattern
+→ transfer — in under a minute. Built for a live demo or screen recording: the
+bug runs with plain `node` (so "reality" is a real command), the prediction is a
+clean multiple choice, and the prompt reliably trips the concept gate. Includes a
+step-by-step script, recording tips, and a facilitator answer key.
 
-- **`adaptive-hint-ladder/`** — a minimal walkthrough of a conceptual
-  nudge → worked step → full solution ladder for one small task.
-- **`self-explanation-prompt/`** — inserting a self-explanation prompt
-  into an assisted coding turn.
-- **`reflection-checkpoint/`** — a reflection checkpoint before starting
-  a task.
-- **`assistance-fading/`** — how scaffolding steps back as competence
-  grows.
+## More to come
 
-Each example will be self-contained with its own README explaining the
-pattern, the learning-science rationale, and how to run it.
-
-## Transcript sketch
-
-Until the code lands, here is the shape of an adaptive-hint interaction
-(also shown in the top-level README):
-
-```text
-You:      I need to dedupe this list of user records by email.
-Waddl:    Before I write it — what makes two records "the same" here?
-You:      Same email, case-insensitive.
-Waddl:    Here's a conceptual hint rather than the full answer:
-          use a Set keyed on the *normalized* email as you iterate.
-          Want:  [ hint · step · solution ]
-```
-
-Contributions welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
+Each future example is self-contained with its own README explaining the
+pattern, the learning-science rationale, and how to run it. Good candidates:
+self-explanation prompts, progressive hint ladders, and assistance fading — the
+declared-but-unbuilt interventions in
+[`@waddl/learning-engine`](../packages/learning-engine). Contributions welcome —
+see [CONTRIBUTING.md](../CONTRIBUTING.md) and
+[`docs/interventions.md`](../docs/interventions.md).
