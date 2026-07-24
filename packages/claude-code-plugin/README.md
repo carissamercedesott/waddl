@@ -9,6 +9,21 @@ mental model instead of just receiving a fix. There is always an instant
 Duckling is the installable plugin; the research project behind it is
 [**Waddl**](../../README.md). This is independent personal work.
 
+## New here? Take the tour
+
+After enabling the plugin, run:
+
+```text
+/duckling:walkthrough
+```
+
+A ~2-minute hands-on tour: it gives you a tiny coding task, asks you to predict
+before revealing anything, runs the code to check reality, then tests whether the
+idea transfers — teaching the whole loop by doing it once. It ends by showing how
+Mental Model Mode then works automatically on your own questions. Fully
+self-contained (ships its own sample), so it works whether you loaded the plugin
+locally or installed it from the marketplace.
+
 ## The interaction
 
 `skills/mental-model/SKILL.md` → **`/duckling:mental-model`**. It is
@@ -41,7 +56,8 @@ claude-code-plugin/            # the plugin root
 ├── .claude-plugin/
 │   └── plugin.json            # manifest — name "duckling" — ONLY this goes here
 ├── skills/
-│   └── mental-model/SKILL.md  # /duckling:mental-model (model-invoked)
+│   ├── mental-model/SKILL.md  # /duckling:mental-model (model-invoked)
+│   └── walkthrough/           # /duckling:walkthrough — guided tour + sample.py
 ├── bin/
 │   └── duckling               # the session-recording CLI (bundled, on PATH when enabled)
 └── src/                        # CLI source (cli.ts + file-store.ts); built into bin/
