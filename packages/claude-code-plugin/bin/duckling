@@ -1,0 +1,463 @@
+#!/usr/bin/env node
+"use strict";
+
+// ../learning-engine/dist/concepts.js
+var CONCEPTS = [
+  {
+    id: "closures",
+    label: "Closures",
+    keywords: ["closure", "captured variable", "stale closure", "capture"],
+    mentalModel: "A function captures the environment where it was created."
+  },
+  {
+    id: "react-state",
+    label: "React state",
+    keywords: ["usestate", "setstate", "react state", "re-render", "rerender"],
+    mentalModel: "State updates are scheduled, not applied synchronously."
+  },
+  {
+    id: "derived-state",
+    label: "Derived state",
+    keywords: ["derived state", "duplicate state", "sync state", "useeffect to set"],
+    mentalModel: "State that can be computed should be computed, not stored."
+  },
+  {
+    id: "async",
+    label: "Async / await",
+    keywords: ["async", "await", "promise", "then(", "microtask", "race condition"],
+    mentalModel: "Async work resumes later; nothing pauses the surrounding call."
+  },
+  {
+    id: "event-loop",
+    label: "Event loop",
+    keywords: ["event loop", "settimeout", "microtask", "task queue", "callback queue"],
+    mentalModel: "Callbacks run after the current stack unwinds, in a defined order."
+  },
+  {
+    id: "concurrency",
+    label: "Concurrency",
+    keywords: ["concurrency", "concurrent", "parallel", "data race", "lock", "mutex"],
+    mentalModel: "Interleaved operations can observe each other's partial state."
+  },
+  {
+    id: "references",
+    label: "References vs values",
+    keywords: ["reference", "by reference", "identity", "same object", "aliasing"],
+    mentalModel: "Two names can point at the same object; copies do not."
+  },
+  {
+    id: "mutation",
+    label: "Mutation",
+    keywords: ["mutate", "mutation", "in place", "mutating", "immutable"],
+    mentalModel: "Mutating shared data affects everyone holding a reference to it."
+  },
+  {
+    id: "recursion",
+    label: "Recursion",
+    keywords: ["recursion", "recursive", "base case", "call stack", "stack overflow"],
+    mentalModel: "Each call has its own frame; the base case ends the descent."
+  },
+  {
+    id: "memoization",
+    label: "Memoization",
+    keywords: ["memo", "memoize", "usememo", "usecallback", "cache key", "dependency array"],
+    mentalModel: "Cached results are reused only when the inputs are unchanged."
+  }
+];
+function getConcept(id) {
+  return CONCEPTS.find((c) => c.id === id);
+}
+
+// ../learning-engine/dist/concept-detection/index.js
+var TRIVIAL_MARKERS = [
+  "syntax error",
+  "typo",
+  "import",
+  "how do i print",
+  "format",
+  "rename",
+  "indent",
+  "boilerplate",
+  "scaffold"
+];
+function normalize(input) {
+  return input.toLowerCase();
+}
+function matchConcept(text, concept) {
+  const matched = concept.keywords.filter((k) => text.includes(k));
+  if (matched.length === 0)
+    return null;
+  const score = Math.min(1, 0.4 + 0.2 * matched.length);
+  return { concept: concept.id, matched, score };
+}
+function detectConcepts(input) {
+  const text = normalize(input);
+  return CONCEPTS.map((c) => matchConcept(text, c)).filter((m) => m !== null).sort((a, b) => b.score - a.score);
+}
+function isTrivial(input) {
+  const text = normalize(input);
+  return TRIVIAL_MARKERS.some((m) => text.includes(m));
+}
+function isConceptuallyImportant(input) {
+  return !isTrivial(input) && detectConcepts(input).length > 0;
+}
+function topConcept(input) {
+  return detectConcepts(input)[0]?.concept ?? null;
+}
+
+// ../learning-engine/dist/prompts/index.js
+var ESCAPE_HATCH = "Skip \xB7 Show Answer";
+function conceptLabel(concept) {
+  return getConcept(concept)?.label ?? concept;
+}
+function generatePredictionPrompt(concept) {
+  return {
+    text: `Before I explain \u2014 what do you think happens here? (${conceptLabel(concept)}) Predict the output, the value received, or which branch runs.`,
+    // Runtime fills `choices` from the real code; multiple choice is preferred.
+    choices: [],
+    escapeHatch: ESCAPE_HATCH
+  };
+}
+function generateTransferPrompt(concept) {
+  return {
+    text: `Quick transfer check \u2014 here's a different ${conceptLabel(concept)} example. Same idea, new code: what does it do?`,
+    choices: [],
+    escapeHatch: ESCAPE_HATCH
+  };
+}
+
+// ../learning-engine/dist/interventions/prediction.js
+var predictionIntervention = {
+  kind: "prediction",
+  label: "Prediction",
+  description: "Ask the learner to predict the code's behavior before revealing it, exposing their current mental model.",
+  available: true,
+  buildPrompt(context) {
+    return generatePredictionPrompt(context.concept);
+  }
+};
+
+// ../learning-engine/dist/interventions/transfer.js
+var transferIntervention = {
+  kind: "transfer",
+  label: "Transfer check",
+  description: "Pose a different example of the same concept to test whether understanding transferred.",
+  available: true,
+  buildPrompt(context) {
+    return generateTransferPrompt(context.concept);
+  }
+};
+
+// ../learning-engine/dist/interventions/registry.js
+var registry = /* @__PURE__ */ new Map();
+function register(intervention) {
+  registry.set(intervention.kind, intervention);
+}
+register(predictionIntervention);
+register(transferIntervention);
+register(plannedIntervention("self-explanation", "Self-explanation", "Prompt the learner to explain why the code behaves as it does."));
+register(plannedIntervention("worked-example", "Worked example", "Show a fully worked solution with each step justified."));
+register(plannedIntervention("progressive-hints", "Progressive hints", "Reveal graduated hints on demand (attention \u2192 concept \u2192 code)."));
+register(plannedIntervention("execution-visualization", "Execution visualization", "Trace or visualize the code's execution instead of explaining in prose."));
+register(plannedIntervention("contrast-case", "Contrast case", "Compare two near-identical snippets to isolate the concept that matters."));
+
+// ../learning-engine/dist/interventions/index.js
+var InterventionNotImplementedError = class extends Error {
+  constructor(kind) {
+    super(`Intervention "${kind}" is a declared extension point but is not implemented yet.`);
+    this.name = "InterventionNotImplementedError";
+  }
+};
+function plannedIntervention(kind, label, description) {
+  return {
+    kind,
+    label,
+    description,
+    available: false,
+    buildPrompt() {
+      throw new InterventionNotImplementedError(kind);
+    }
+  };
+}
+
+// ../learning-engine/dist/session/index.js
+function createSession({ id, timestamp, concept = "" }) {
+  return {
+    id,
+    timestamp,
+    step: "idle",
+    concept,
+    intervention: "prediction",
+    prediction: null,
+    confidence: null,
+    actualBehavior: null,
+    transferAnswer: null,
+    transferCorrect: null,
+    solutionRevealed: false
+  };
+}
+function reduce(state, event) {
+  switch (event.type) {
+    case "start":
+      return { ...state, step: "prediction", intervention: "prediction" };
+    case "predict":
+      return { ...state, prediction: event.prediction, step: "commit" };
+    case "commit":
+      return { ...state, confidence: event.confidence, step: "reality" };
+    case "reveal":
+      return {
+        ...state,
+        actualBehavior: event.actualBehavior,
+        solutionRevealed: true,
+        step: "repair"
+      };
+    case "toPattern":
+      return { ...state, step: "pattern" };
+    case "toTransfer":
+      return { ...state, step: "transfer", intervention: "transfer" };
+    case "answerTransfer":
+      return {
+        ...state,
+        transferAnswer: event.answer,
+        transferCorrect: event.correct,
+        step: "complete"
+      };
+    case "showAnswer":
+      return { ...state, solutionRevealed: true, step: "repair" };
+    case "skip":
+      return { ...state, step: "complete" };
+    case "reset":
+      return createSession({
+        id: state.id,
+        timestamp: state.timestamp,
+        concept: state.concept
+      });
+    default: {
+      const _never = event;
+      return _never;
+    }
+  }
+}
+function toRecord(state) {
+  return {
+    id: state.id,
+    timestamp: state.timestamp,
+    concept: state.concept,
+    intervention: state.intervention,
+    prediction: state.prediction,
+    confidence: state.confidence,
+    actualBehavior: state.actualBehavior,
+    transferAnswer: state.transferAnswer,
+    transferCorrect: state.transferCorrect
+  };
+}
+
+// ../learning-engine/dist/storage/index.js
+function toJsonl(sessions) {
+  return sessions.map((s) => JSON.stringify(s)).join("\n");
+}
+function fromJsonl(jsonl) {
+  return jsonl.split("\n").map((line) => line.trim()).filter((line) => line.length > 0).map((line) => JSON.parse(line));
+}
+
+// ../learning-engine/dist/analytics/index.js
+function summarizeTransfer(sessions) {
+  const graded = sessions.filter((s) => s.transferCorrect !== null);
+  const transferred = graded.filter((s) => s.transferCorrect === true);
+  return {
+    total: sessions.length,
+    graded: graded.length,
+    transferred: transferred.length,
+    rate: graded.length === 0 ? null : transferred.length / graded.length
+  };
+}
+
+// src/file-store.ts
+var import_node_fs = require("node:fs");
+var import_node_os = require("node:os");
+var import_node_path = require("node:path");
+var FileStore = class {
+  home;
+  statePath;
+  recordsPath;
+  constructor(home = process.env.DUCKLING_HOME ?? (0, import_node_path.join)((0, import_node_os.homedir)(), ".duckling")) {
+    this.home = home;
+    this.statePath = (0, import_node_path.join)(home, "state.json");
+    this.recordsPath = (0, import_node_path.join)(home, "sessions.jsonl");
+    if (!(0, import_node_fs.existsSync)(home))
+      (0, import_node_fs.mkdirSync)(home, { recursive: true });
+  }
+  readStateFile() {
+    if (!(0, import_node_fs.existsSync)(this.statePath))
+      return { activeId: null, sessions: {} };
+    return JSON.parse((0, import_node_fs.readFileSync)(this.statePath, "utf8"));
+  }
+  writeStateFile(data) {
+    (0, import_node_fs.writeFileSync)(this.statePath, JSON.stringify(data, null, 2));
+  }
+  /** The id of the most recently touched session, if any. */
+  getActiveId() {
+    return this.readStateFile().activeId;
+  }
+  getState(id) {
+    return this.readStateFile().sessions[id];
+  }
+  /** Save runtime state and upsert its projected research record in one step. */
+  putState(state) {
+    const data = this.readStateFile();
+    data.sessions[state.id] = state;
+    data.activeId = state.id;
+    this.writeStateFile(data);
+    this.saveRecord(toRecord(state));
+  }
+  /** Every persisted research record, in insertion order. */
+  allRecords() {
+    if (!(0, import_node_fs.existsSync)(this.recordsPath))
+      return [];
+    return fromJsonl((0, import_node_fs.readFileSync)(this.recordsPath, "utf8"));
+  }
+  /** Upsert a record by id (partial sessions are captured too). */
+  saveRecord(record) {
+    const records = this.allRecords();
+    const idx = records.findIndex((r) => r.id === record.id);
+    if (idx >= 0)
+      records[idx] = record;
+    else
+      records.push(record);
+    (0, import_node_fs.writeFileSync)(this.recordsPath, `${toJsonl(records)}
+`);
+  }
+};
+
+// src/cli.ts
+var parseArgs = (argv) => {
+  const out = { positional: [], flags: {} };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith("--")) {
+      const key = a.slice(2);
+      const next = argv[i + 1];
+      if (next === void 0 || next.startsWith("--")) {
+        out.flags[key] = true;
+      } else {
+        out.flags[key] = next;
+        i++;
+      }
+    } else {
+      out.positional.push(a);
+    }
+  }
+  return out;
+};
+var emit = (value) => {
+  process.stdout.write(`${JSON.stringify(value)}
+`);
+};
+var fail = (message) => {
+  emit({ error: message });
+  process.exit(1);
+};
+var str = (v) => typeof v === "string" ? v : void 0;
+var newId = () => `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+var view = (state) => ({
+  id: state.id,
+  step: state.step,
+  record: toRecord(state)
+});
+var main = () => {
+  const args = parseArgs(process.argv.slice(2));
+  const cmd = args.positional[0] ?? "";
+  const f = args.flags;
+  const store = new FileStore();
+  const loadTarget = () => {
+    const id = str(f.id) ?? store.getActiveId();
+    if (!id)
+      fail("no active session; run `duckling start` first");
+    const state = store.getState(id);
+    if (!state)
+      fail(`unknown session: ${id}`);
+    return state;
+  };
+  const advance = (next) => {
+    store.putState(next);
+    emit(view(next));
+  };
+  switch (cmd) {
+    case "start": {
+      const input = str(f.input) ?? "";
+      const explicit = str(f.concept) ?? "";
+      if (!explicit && input && !isConceptuallyImportant(input)) {
+        emit({ skip: true, reason: "not conceptually important", concepts: detectConcepts(input) });
+        return;
+      }
+      const concept = explicit || (input ? topConcept(input) ?? "" : "");
+      let state = createSession({ id: newId(), timestamp: Date.now(), concept });
+      state = reduce(state, { type: "start" });
+      store.putState(state);
+      emit({ ...view(state), concept, prompt: predictionIntervention.buildPrompt({ concept }) });
+      return;
+    }
+    case "predict": {
+      const prediction = f.idk ? null : str(f.prediction) ?? null;
+      advance(reduce(loadTarget(), { type: "predict", prediction }));
+      return;
+    }
+    case "commit": {
+      const n = Number(str(f.confidence));
+      if (!Number.isInteger(n) || n < 1 || n > 5)
+        fail("--confidence must be 1..5");
+      advance(reduce(loadTarget(), { type: "commit", confidence: n }));
+      return;
+    }
+    case "reveal": {
+      const actual = str(f.actual);
+      if (actual === void 0)
+        return fail("--actual is required");
+      advance(reduce(loadTarget(), { type: "reveal", actualBehavior: actual }));
+      return;
+    }
+    case "pattern": {
+      advance(reduce(loadTarget(), { type: "toPattern" }));
+      return;
+    }
+    case "transfer": {
+      const state = reduce(loadTarget(), { type: "toTransfer" });
+      store.putState(state);
+      emit({ ...view(state), prompt: transferIntervention.buildPrompt({ concept: state.concept }) });
+      return;
+    }
+    case "answer-transfer": {
+      const answer = str(f.answer) ?? null;
+      const correct = f.correct === "true" ? true : f.correct === "false" ? false : null;
+      advance(reduce(loadTarget(), { type: "answerTransfer", answer, correct }));
+      return;
+    }
+    case "show-answer": {
+      advance(reduce(loadTarget(), { type: "showAnswer" }));
+      return;
+    }
+    case "skip": {
+      advance(reduce(loadTarget(), { type: "skip" }));
+      return;
+    }
+    case "status": {
+      emit(view(loadTarget()));
+      return;
+    }
+    case "log": {
+      const limit = Number(str(f.limit) ?? "10");
+      const records = store.allRecords();
+      emit({ records: records.slice(-(Number.isFinite(limit) ? limit : 10)) });
+      return;
+    }
+    case "summary": {
+      emit(summarizeTransfer(store.allRecords()));
+      return;
+    }
+    default:
+      fail(
+        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary> [--id X] [flags]"
+      );
+  }
+};
+main();

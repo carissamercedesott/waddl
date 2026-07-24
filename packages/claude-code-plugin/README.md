@@ -40,13 +40,37 @@ transfer as the real measure of learning). At **every** step the user can say
 claude-code-plugin/            # the plugin root
 ├── .claude-plugin/
 │   └── plugin.json            # manifest — name "duckling" — ONLY this goes here
-└── skills/
-    └── mental-model/SKILL.md  # /duckling:mental-model (model-invoked)
+├── skills/
+│   └── mental-model/SKILL.md  # /duckling:mental-model (model-invoked)
+├── bin/
+│   └── duckling               # the session-recording CLI (bundled, on PATH when enabled)
+└── src/                        # CLI source (cli.ts + file-store.ts); built into bin/
 ```
 
 This follows the [official plugin docs](https://code.claude.com/docs/en/plugins):
 the manifest lives at `.claude-plugin/plugin.json`; everything else is at the
-plugin root. The skill folder name becomes the namespaced invocation.
+plugin root. The skill folder name becomes the namespaced invocation; a plugin's
+`bin/` is added to the Bash tool's `PATH` while the plugin is enabled.
+
+## How it records (drives the engine)
+
+The skill isn't just a prompt — at each step it calls the **`duckling` CLI**,
+which runs the real session state machine from
+[`@waddl/learning-engine`](../learning-engine) (`reduce()`) and persists each
+step as a `LearningSession` record. So the flow produces actual research data —
+including the transfer outcome the project measures.
+
+- **Local only.** Records live under `~/.duckling` (override with
+  `$DUCKLING_HOME`) and are never transmitted. See [privacy](../../docs/privacy.md).
+- **Requires `node`** on `PATH` (the CLI is a bundled, dependency-free Node
+  script). If `duckling` is unavailable, the skill degrades to running the flow
+  conversationally without recording.
+- **Inspect your data:** `duckling log` lists recent sessions; `duckling summary`
+  reports the running transfer rate.
+- **Rebuild after changing `src/`:** from the repo root,
+  `npm install && npm run build -w @waddl/learning-engine && npm run build:cli -w @waddl/duckling-plugin`
+  (the committed `bin/duckling` is the shipped artifact). Tip: allowlist
+  `duckling` in Claude Code permissions to avoid repeated Bash prompts.
 
 ## Try it locally
 

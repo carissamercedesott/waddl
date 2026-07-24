@@ -21,29 +21,51 @@ This is part of the **Waddl** research project. The loop is: **expose the
 learner's mental model → show reality → repair only the mismatch → test whether
 it transfers.**
 
+## Recording (drives the engine)
+
+This plugin ships a `duckling` command (on your `PATH` while the plugin is
+enabled) that runs the real learning-session state machine and persists each
+step as a research record under `~/.duckling` — **local only, never
+transmitted**. Call it at each transition below via Bash. It prints one JSON
+line; read the `step` field to know where you are.
+
+- It is a **recorder**, not a replacement for you: you still author every
+  question and explanation. The commands just advance and save the session.
+- If `duckling` is missing or a call errors, **continue the interaction
+  conversationally without recording** — never let a failed command block the
+  user. (Users can allowlist `duckling` in permissions to avoid repeated
+  prompts.)
+- `--id` defaults to the most recent session, so you can usually omit it.
+
 ## Gate: when to run (and when not to)
 
 Run Mental Model Mode only when the request turns on a **conceptually important**
-idea the user could reason about — e.g. closures, async / the event loop, React
+idea the user could reason about — closures, async / the event loop, React
 state, derived state, references vs. values, mutation, recursion, memoization,
 concurrency.
 
-**Do NOT run it** (just answer normally) for: syntax errors, typos, imports,
-formatting, config, boilerplate/scaffolding, or anything the user couldn't
-reasonably predict. When unsure, offer it in one line and respect the answer:
-`Want a 20-second mental-model check first, or should I just answer?  [ check · just answer ]`
+Start by running:
+
+```bash
+duckling start --input "<the user's request, quoted>"
+```
+
+If it returns `{"skip": true, ...}` (or the request is clearly boilerplate,
+syntax, a typo, or config), **just answer normally** — no learning interaction.
+Otherwise it returns an `id`, the detected `concept`, and a prediction `prompt`
+to guide step 1.
 
 ## Non-negotiable principles
 
 - **Escape hatch, always.** At every step, if the user says "Skip", "Show
-  Answer", "just tell me", or seems rushed — **stop and give the complete answer
-  immediately.** Never withhold it. Show the escape hatch on every step.
-- **Under a minute.** One short message per step. Never a tutorial. Never
+  Answer", "just tell me", or seems rushed — run `duckling show-answer` (or
+  `duckling skip` to abandon), then **give the complete answer immediately.**
+  Never withhold it.
+- **Under a minute.** One short message per step. Never a tutorial, never
   homework.
-- **Specific, never generic.** Every question references the user's actual code
-  — never "explain your reasoning."
-- **Expose, don't quiz.** The prediction step is to surface the current mental
-  model, not to test-and-grade. There are no points, streaks, or scores.
+- **Specific, never generic.** Every question references the user's actual code.
+- **Expose, don't quiz.** Prediction surfaces the current mental model; it is
+  not a graded test. No points, streaks, or scores.
 
 ## The flow (a finite state machine)
 
@@ -53,69 +75,69 @@ reasonably predict. When unsure, offer it in one line and respect the answer:
       └─────────┴──── "Skip" / "Show Answer" ──→ reveal the answer, then stop
 ```
 
-Walk the states in order, one message each. Keep the whole thing calm and tight.
-
 ### 1 — Prediction
-Ask **one** question that reveals their mental model. **Prefer multiple choice**
-(it's faster and exposes misconceptions cleanly). Tailor it to their code:
-- "What do you think this callback receives — (a) …, (b) …, (c) …?"
-- "What does this print?"
-- "Which branch runs?"
-- "What will `<expr>` be after this?"
+Ask **one** question that reveals their mental model — **prefer multiple
+choice**, tailored to their code ("What does this print — (a)…, (b)…, (c)…?").
+When they answer (or say **"I don't know"**), record it:
 
-They can answer, or tap **"I don't know"** (that's useful data, not failure).
-
-### 2 — Commit
-Optionally ask **"How confident are you?"**
-`1 Very unsure · 2 Somewhat unsure · 3 Neutral · 4 Fairly confident · 5 Very confident`
-One tap. Low confidence + wrong prediction, or high confidence + wrong
-prediction, both tell you where to aim the repair. (No persistent storage in
-this terminal version — hold it for this conversation. See Extension points.)
-
-### 3 — Reality
-Now show what actually happens. **Prefer running or tracing the real code over
-prose** — you're in Claude Code, so execute a minimal snippet (or step through
-it) and show:
-
-```text
-Your prediction:  <what they said>
-Actual behavior:  <what it really does>
+```bash
+duckling predict --prediction "<what they said>"   # or: duckling predict --idk
 ```
 
-Let the mismatch speak for itself before you explain anything.
+### 2 — Commit
+Optionally ask **"How confident?"** `1 Very unsure … 5 Very confident`. One tap.
+
+```bash
+duckling commit --confidence <1-5>
+```
+
+### 3 — Reality
+Show what actually happens. **Prefer running or tracing the real code** over
+prose — you're in Claude Code, so execute a minimal snippet — then show
+`Your prediction: … / Actual behavior: …` and record the actual behavior:
+
+```bash
+duckling reveal --actual "<one-line actual behavior>"
+```
 
 ### 4 — Repair
 Explain **only the mismatch** — the one thing that makes reality differ from
-their prediction. One or two sentences.
-- Good: "The callback captures the variable from the render where it was created."
-- Bad: five paragraphs on how closures work.
+their prediction. One or two sentences, not a tutorial.
 
 ### 5 — Pattern
-State **one** reusable principle — a single sentence they can carry to new code:
+State **one** reusable principle (a single sentence), then record it:
+
+```bash
+duckling pattern
+```
 > **Pattern** — Functional updates avoid stale state.
 
-Examples: "Closures capture environments." · "Derived state should usually be
-computed, not stored."
-
 ### 6 — Transfer
-Ask **one short** question using a **different** example of the same concept —
-new code, same idea. This is the point of the whole exercise: it measures
-whether the concept *transferred* rather than being memorized. Keep it to one
-quick prediction, give a one-line confirmation, and you're done.
+Enter the transfer step and pose a **different** example of the same concept —
+new code, same idea. This is the point of the exercise: it measures whether the
+concept *transferred* rather than being memorized.
 
-Then answer whatever they originally needed, as normal.
+```bash
+duckling transfer                 # enters transfer; author a NEW-example question
+```
+When they answer, grade whether the concept carried over and record it:
+
+```bash
+duckling answer-transfer --answer "<their answer>" --correct <true|false>
+```
+
+Then answer whatever they originally needed, as normal. (`duckling summary`
+reports the running transfer rate; `duckling log` lists recent sessions.)
 
 ## Extension points (do NOT build now)
 
 Mental Model Mode is one intervention in a pluggable system. v1 ships
-**Prediction + Transfer**; these are declared but not implemented, and are the
-way future experiments extend Duckling:
-- self-explanation · worked example · progressive hints · execution
-  visualization · contrast case · misconception detection · adaptive intervention
-  selection · spaced repetition · persistent, privacy-preserving session logging.
+**Prediction + Transfer**; the rest are declared but not implemented, and are how
+future experiments extend Duckling: self-explanation · worked example ·
+progressive hints · execution visualization · contrast case · misconception
+detection · adaptive intervention selection · spaced repetition.
 
-The typed state machine, intervention registry, session record, storage, and
-analytics live in [`@waddl/learning-engine`](../../learning-engine)
-(`session/`, `interventions/`, `intervention-selection/`, `storage/`,
-`analytics/`). See the repo `docs/interventions.md`, `docs/design-principles.md`,
-and `docs/privacy.md`.
+The state machine, intervention registry, session record, storage, and analytics
+live in [`@waddl/learning-engine`](../../learning-engine); the `duckling` CLI is
+a thin wrapper over them. See the repo `docs/interventions.md`,
+`docs/design-principles.md`, and `docs/privacy.md`.
