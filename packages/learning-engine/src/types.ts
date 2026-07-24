@@ -22,6 +22,21 @@ export const HINT_LEVELS: readonly HintLevel[] = ["nudge", "step", "solution"];
 export type PromptKind = "self-explanation" | "reflection";
 
 /**
+ * Self-reported confidence, 1–5 (1 = very unsure … 5 = very confident).
+ * Captured in the Learn Mode flow's confidence step.
+ */
+export type Confidence = 1 | 2 | 3 | 4 | 5;
+
+/** Human-readable labels for each {@link Confidence} level. */
+export const CONFIDENCE_LABELS: Record<Confidence, string> = {
+  1: "Very unsure",
+  2: "Somewhat unsure",
+  3: "Neutral",
+  4: "Fairly confident",
+  5: "Very confident",
+};
+
+/**
  * An observed learner event that can update the learner model.
  * Kept deliberately coarse and non-identifying — see docs/privacy.md.
  */

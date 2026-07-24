@@ -1,28 +1,41 @@
 # @waddl/claude-code-plugin
 
-The Claude Code plugin that delivers Waddl's learning-focused interaction
-patterns inside a real coding workflow.
+**Learn Mode** — a learning layer that sits between you and Claude's normal
+answer. When you ask for debugging help or ask Claude to explain code, Waddl
+runs a brief (30–60s) guided pass *before* handing you the solution, so you keep
+the thinking that builds understanding. There is always an instant **"Show
+answer"** escape hatch — it never blocks you from getting work done.
 
-> **Status: early scaffold.** This package is not yet functional. The
-> structure and intent are documented here so contributors can help
-> build it.
+## Learn Mode — the main skill
 
-## What it will do
+`skills/learn/SKILL.md` → **`/waddl:learn`**. It is **model-invoked**: Claude
+runs it automatically when you ask for a debugging fix, ask why a test/error is
+happening, or ask it to explain a specific piece of code. You can also invoke it
+explicitly with `/waddl:learn <your question>`.
 
-Wrap ordinary coding assistance with optional, learning-oriented
-behaviors driven by [`@waddl/learning-engine`](../learning-engine):
+The flow is a small finite state machine, one short step at a time:
 
-- **Adaptive hints** — offer `hint · step · solution` on demand instead
-  of pushing a full answer by default.
-- **Assistance fading** — reduce scaffolding as the learner demonstrates
-  competence.
-- **Self-explanation prompts** — invite the learner to explain or predict
-  at high-value moments.
-- **Reflection checkpoints** — brief, skippable pauses to plan and
-  reflect.
+```text
+prediction → confidence → hint → attempt → reflection → pattern
+   "What do    "How        one    "Try it   one specific   "Pattern
+   you think    confident   minimal yourself" question       learned:
+   is happening?" are you?"  hint            about the bug    <chunk>"
+```
 
-Every behavior is optional, on-demand, and configurable per the
-[design principles](../../docs/design-principles.md).
+Rooted in cognitive science: prediction-before-feedback, a confidence
+(metacognition) check, graduated minimal hints (productive struggle), a hands-on
+attempt (active recall), a targeted self-explanation, and a reusable pattern
+(a new mental chunk). At **every** step the user can say "I don't know" or
+"Show answer." See the project [design principles](../../docs/design-principles.md).
+
+## À la carte skills
+
+Three smaller, explicitly user-invoked skills expose individual steps of the
+flow on demand (marked `disable-model-invocation: true`):
+
+- **`/waddl:hint`** — a graduated hint (nudge → step → solution).
+- **`/waddl:explain`** — a self-explanation prompt.
+- **`/waddl:reflect`** — a reflection checkpoint before starting a task.
 
 ## Layout
 
@@ -31,6 +44,7 @@ claude-code-plugin/            # the plugin root
 ├── .claude-plugin/
 │   └── plugin.json            # manifest (name, version, author) — ONLY this goes here
 └── skills/                    # skills, auto-discovered by Claude Code
+    ├── learn/SKILL.md         # /waddl:learn   — the full Learn Mode flow (model-invoked)
     ├── hint/SKILL.md          # /waddl:hint    — graduated hint (nudge → step → solution)
     ├── explain/SKILL.md       # /waddl:explain — self-explanation prompt
     └── reflect/SKILL.md       # /waddl:reflect — reflection checkpoint
@@ -40,15 +54,14 @@ This follows the structure in the
 [official plugin docs](https://code.claude.com/docs/en/plugins): the manifest
 lives at `.claude-plugin/plugin.json`, and every other directory (`skills/`) is
 at the **plugin root**, not inside `.claude-plugin/`. Each skill is a folder with
-a `SKILL.md`; the folder name becomes the namespaced invocation (`/waddl:hint`).
-The skills are marked `disable-model-invocation: true`, so they act as explicit
-user commands rather than being auto-invoked.
+a `SKILL.md`; the folder name becomes the namespaced invocation (`/waddl:learn`).
 
-The skills are **stubs**: they load and run today as prompt templates, but their
-behavior is not yet driven by [`@waddl/learning-engine`](../learning-engine).
-Wiring them to the engine (so hint level and prompt timing adapt to the learner)
-is the next step. Planned but not yet added: `hooks/hooks.json` (to offer
-reflection checkpoints proactively) and `agents/`.
+**Status:** the skills work today as carefully-designed prompt flows. They are
+not yet wired to [`@waddl/learning-engine`](../learning-engine), whose typed
+state machine (`session/`) and hint/prompt logic (`hints/`, `prompts/`) are the
+extension points for future experiments — adaptive hinting, spaced repetition,
+retrieval practice, misconception detection. Also planned: `hooks/hooks.json` to
+offer the flow proactively.
 
 ## Try it locally
 
@@ -58,10 +71,11 @@ From the repo root, load the plugin directly with `--plugin-dir` (no install):
 claude --plugin-dir ./packages/claude-code-plugin
 ```
 
-Then run a skill:
+Then trigger Learn Mode — either explicitly, or just by asking for debugging
+help (it's model-invoked, so Claude runs it on its own):
 
 ```text
-/waddl:hint I can't get this recursion to terminate
+/waddl:learn my useEffect runs on every render even though the deps array is empty
 ```
 
 Use `/reload-plugins` to pick up edits without restarting. Alternatively, the

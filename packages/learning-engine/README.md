@@ -28,7 +28,8 @@ be evaluated across surfaces.
 learning-engine/
 ├── src/
 │   ├── index.ts         # public barrel export
-│   ├── types.ts         # shared types (HintLevel, LearnerModel, signals…)
+│   ├── types.ts         # shared types (HintLevel, Confidence, LearnerModel, signals…)
+│   ├── session/         # Learn Mode flow as a finite state machine (reducer + swappable STEP_ORDER)
 │   ├── hints/           # hint ladder + starting-level policy
 │   ├── fading/          # assistance-fading policy
 │   ├── learner-model/   # lightweight competence estimate

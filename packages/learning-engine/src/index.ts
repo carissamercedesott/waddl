@@ -10,6 +10,7 @@
  */
 
 export * from "./types.js";
+export * from "./session/index.js";
 export * from "./learner-model/index.js";
 export * from "./hints/index.js";
 export * from "./fading/index.js";
