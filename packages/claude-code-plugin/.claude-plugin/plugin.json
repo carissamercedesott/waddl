@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "duckling",
   "displayName": "Duckling",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A learning layer for Claude Code from the Waddl research project. Before answering a conceptually important question, it runs Mental Model Mode (<1 min): expose your mental model → show reality → repair the mismatch → test whether it transfers. Always has a 'Show Answer' escape hatch.",
   "author": {
     "name": "Carissa Ott",
