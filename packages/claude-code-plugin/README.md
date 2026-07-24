@@ -67,6 +67,29 @@ including the transfer outcome the project measures.
   conversationally without recording.
 - **Inspect your data:** `duckling log` lists recent sessions; `duckling summary`
   reports the running transfer rate.
+
+### Locked / accountability mode
+
+A mentor, teacher, or the user themselves can lock Learn Mode on so it can't be
+casually switched off:
+
+```bash
+duckling lock --passcode <code>     # turn Learn Mode on and lock it
+duckling gate                       # -> {"enforced": true|false}
+duckling unlock --passcode <code>   # turn it off (needs the passcode)
+```
+
+When locked, the skill keeps running Mental Model Mode and declines to disable
+it — but the per-task **"Show Answer"** escape hatch still works, so no one is
+ever blocked from getting an answer. Only the passcode (salted SHA-256, never
+stored in plaintext) can unlock it.
+
+> **This is a commitment device, not security.** The config lives in a local
+> file, so a determined user on their own machine can bypass it (delete
+> `~/.duckling`, disable the plugin, or not use Claude Code). It's meant for
+> good-faith self-discipline or a supervised learner — not enforcement against
+> an adversary. For real lock-down, use Claude Code **managed settings** on an
+> administered device, which can force-enable a plugin.
 - **Rebuild after changing `src/`:** from the repo root,
   `npm install && npm run build -w @waddl/learning-engine && npm run build:cli -w @waddl/duckling-plugin`
   (the committed `bin/duckling` is the shipped artifact). Tip: allowlist

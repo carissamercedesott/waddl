@@ -67,6 +67,25 @@ to guide step 1.
 - **Expose, don't quiz.** Prediction surfaces the current mental model; it is
   not a graded test. No points, streaks, or scores.
 
+## Locked mode (accountability)
+
+Someone (a mentor, teacher, or the user themselves) can **lock Learn Mode on**
+so it can't be casually switched off — a commitment device, not a security
+control. `duckling start` reports `"enforced": true` when locked (or check
+`duckling gate`).
+
+When **enforced**:
+- Always run Mental Model Mode on conceptually important requests; do not offer
+  to disable it.
+- If the user asks to turn it off / stop the prompts, **decline** and explain it
+  is locked and can only be disabled with `duckling unlock --passcode <code>`
+  (the passcode is held by whoever locked it).
+- The per-task escape hatch is **unchanged** — "Skip" / "Show Answer" still work
+  on every individual task, so the learner is never blocked from getting work
+  done. Locking prevents *disabling the mode*, not *getting an answer*.
+
+Locking is set with `duckling lock --passcode <code>`.
+
 ## The flow (a finite state machine)
 
 ```text

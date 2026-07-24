@@ -273,19 +273,55 @@ function summarizeTransfer(sessions) {
 }
 
 // src/file-store.ts
+var import_node_crypto = require("node:crypto");
 var import_node_fs = require("node:fs");
 var import_node_os = require("node:os");
 var import_node_path = require("node:path");
+var hashPasscode = (salt, passcode) => (0, import_node_crypto.createHash)("sha256").update(`${salt}:${passcode}`).digest("hex");
 var FileStore = class {
   home;
   statePath;
   recordsPath;
+  configPath;
   constructor(home = process.env.DUCKLING_HOME ?? (0, import_node_path.join)((0, import_node_os.homedir)(), ".duckling")) {
     this.home = home;
     this.statePath = (0, import_node_path.join)(home, "state.json");
     this.recordsPath = (0, import_node_path.join)(home, "sessions.jsonl");
+    this.configPath = (0, import_node_path.join)(home, "config.json");
     if (!(0, import_node_fs.existsSync)(home))
       (0, import_node_fs.mkdirSync)(home, { recursive: true });
+  }
+  readConfig() {
+    if (!(0, import_node_fs.existsSync)(this.configPath))
+      return { enforced: false };
+    return JSON.parse((0, import_node_fs.readFileSync)(this.configPath, "utf8"));
+  }
+  writeConfig(config) {
+    (0, import_node_fs.writeFileSync)(this.configPath, JSON.stringify(config, null, 2));
+  }
+  /** True when Learn Mode is locked on. */
+  isEnforced() {
+    return this.readConfig().enforced === true;
+  }
+  /** Lock Learn Mode on behind a passcode. Fails if already locked. */
+  lock(passcode) {
+    if (this.isEnforced())
+      return false;
+    const salt = (0, import_node_crypto.randomBytes)(16).toString("hex");
+    this.writeConfig({ enforced: true, salt, offHash: hashPasscode(salt, passcode) });
+    return true;
+  }
+  /** Unlock only when the passcode matches. Returns whether it was unlocked. */
+  unlock(passcode) {
+    const config = this.readConfig();
+    if (!config.enforced)
+      return true;
+    if (!config.salt || !config.offHash)
+      return false;
+    if (hashPasscode(config.salt, passcode) !== config.offHash)
+      return false;
+    this.writeConfig({ enforced: false });
+    return true;
   }
   readStateFile() {
     if (!(0, import_node_fs.existsSync)(this.statePath))
@@ -394,7 +430,12 @@ var main = () => {
       let state = createSession({ id: newId(), timestamp: Date.now(), concept });
       state = reduce(state, { type: "start" });
       store.putState(state);
-      emit({ ...view(state), concept, prompt: predictionIntervention.buildPrompt({ concept }) });
+      emit({
+        ...view(state),
+        concept,
+        enforced: store.isEnforced(),
+        prompt: predictionIntervention.buildPrompt({ concept })
+      });
       return;
     }
     case "predict": {
@@ -454,9 +495,31 @@ var main = () => {
       emit(summarizeTransfer(store.allRecords()));
       return;
     }
+    case "gate": {
+      emit({ enforced: store.isEnforced() });
+      return;
+    }
+    case "lock": {
+      const passcode = str(f.passcode);
+      if (!passcode)
+        return fail("--passcode is required");
+      if (!store.lock(passcode))
+        return fail("already locked; unlock first");
+      emit({ enforced: true });
+      return;
+    }
+    case "unlock": {
+      const passcode = str(f.passcode);
+      if (!passcode)
+        return fail("--passcode is required");
+      if (!store.unlock(passcode))
+        return fail("incorrect passcode");
+      emit({ enforced: false });
+      return;
+    }
     default:
       fail(
-        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary> [--id X] [flags]"
+        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary|gate|lock|unlock> [--id X] [flags]"
       );
   }
 };

@@ -11,6 +11,7 @@
  * is ever transmitted — see docs/privacy.md.
  */
 
+import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -27,16 +28,64 @@ interface StateFile {
   sessions: Record<string, SessionState>;
 }
 
+/**
+ * Accountability lock. This is a *commitment device*, not a security control:
+ * the config is a local file, so a determined user can bypass it. The salted
+ * hash only stops the passcode from sitting in plaintext.
+ */
+interface LockConfig {
+  enforced: boolean;
+  salt?: string;
+  offHash?: string;
+}
+
+const hashPasscode = (salt: string, passcode: string): string =>
+  createHash("sha256").update(`${salt}:${passcode}`).digest("hex");
+
 export class FileStore {
   readonly home: string;
   private readonly statePath: string;
   private readonly recordsPath: string;
+  private readonly configPath: string;
 
   constructor(home: string = process.env.DUCKLING_HOME ?? join(homedir(), ".duckling")) {
     this.home = home;
     this.statePath = join(home, "state.json");
     this.recordsPath = join(home, "sessions.jsonl");
+    this.configPath = join(home, "config.json");
     if (!existsSync(home)) mkdirSync(home, { recursive: true });
+  }
+
+  private readConfig(): LockConfig {
+    if (!existsSync(this.configPath)) return { enforced: false };
+    return JSON.parse(readFileSync(this.configPath, "utf8")) as LockConfig;
+  }
+
+  private writeConfig(config: LockConfig): void {
+    writeFileSync(this.configPath, JSON.stringify(config, null, 2));
+  }
+
+  /** True when Learn Mode is locked on. */
+  isEnforced(): boolean {
+    return this.readConfig().enforced === true;
+  }
+
+  /** Lock Learn Mode on behind a passcode. Fails if already locked. */
+  lock(passcode: string): boolean {
+    if (this.isEnforced()) return false;
+    const salt = randomBytes(16).toString("hex");
+    this.writeConfig({ enforced: true, salt, offHash: hashPasscode(salt, passcode) });
+    return true;
+  }
+
+  /** Unlock only when the passcode matches. Returns whether it was unlocked. */
+  unlock(passcode: string): boolean {
+    const config = this.readConfig();
+    if (!config.enforced) return true;
+    if (!config.salt || !config.offHash) return false;
+    if (hashPasscode(config.salt, passcode) !== config.offHash) return false;
+    this.writeConfig({ enforced: false });
+    return true;
   }
 
   private readStateFile(): StateFile {

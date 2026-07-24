@@ -105,7 +105,12 @@ const main = (): void => {
       let state = createSession({ id: newId(), timestamp: Date.now(), concept });
       state = reduce(state, { type: "start" });
       store.putState(state);
-      emit({ ...view(state), concept, prompt: predictionIntervention.buildPrompt({ concept }) });
+      emit({
+        ...view(state),
+        concept,
+        enforced: store.isEnforced(),
+        prompt: predictionIntervention.buildPrompt({ concept }),
+      });
       return;
     }
 
@@ -176,9 +181,31 @@ const main = (): void => {
       return;
     }
 
+    // --- accountability lock (a commitment device, not hard security) ---
+    case "gate": {
+      emit({ enforced: store.isEnforced() });
+      return;
+    }
+
+    case "lock": {
+      const passcode = str(f.passcode);
+      if (!passcode) return fail("--passcode is required");
+      if (!store.lock(passcode)) return fail("already locked; unlock first");
+      emit({ enforced: true });
+      return;
+    }
+
+    case "unlock": {
+      const passcode = str(f.passcode);
+      if (!passcode) return fail("--passcode is required");
+      if (!store.unlock(passcode)) return fail("incorrect passcode");
+      emit({ enforced: false });
+      return;
+    }
+
     default:
       fail(
-        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary> [--id X] [flags]",
+        "usage: duckling <start|predict|commit|reveal|pattern|transfer|answer-transfer|show-answer|skip|status|log|summary|gate|lock|unlock> [--id X] [flags]",
       );
   }
 };
