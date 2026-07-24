@@ -126,7 +126,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## Author and background
 
-Created and maintained by **Carissa Ott**, a software engineer
+Created and maintained by **Carissa Ott**, a software engineer and cognitive science researcher
 interested in developer tools, human–computer interaction, and the
 learning sciences. Waddl grew out of a personal question: how do we
 build AI assistants that make us *more* capable over time, not less?
