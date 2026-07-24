@@ -29,18 +29,12 @@ trying to *learn* (students, career-switchers, engineers picking up a
 new stack), the fastest answer can short-circuit the desirable
 difficulties that build durable skill and mental models.
 
-Waddl investigates a middle path: assistance that adapts to what the
-learner already knows, fades as competence grows, and periodically
-invites the learner to explain, predict, or reflect. Concretely we ask:
-
-- Do **adaptive hints** (graduated from conceptual nudge → worked step)
-  improve retention compared with direct solutions?
-- Does **assistance fading** — reducing scaffolding as the learner
-  succeeds — transfer to unaided problem-solving?
-- Do **self-explanation and reflection prompts** improve conceptual
-  understanding without a large productivity cost?
-- Can these patterns be delivered inside a real coding workflow (a
-  Claude Code plugin) rather than a lab task?
+Waddl investigates a middle path: assistance that first exposes and repairs the
+learner's mental model, then tests whether the idea transfers — rather than just
+handing over the fix. Its first experiment, **Mental Model Mode**, is described
+below; other interventions (adaptive hints, assistance fading, self-explanation,
+spaced repetition) are [extension points](docs/interventions.md) for later
+studies.
 
 ## A 30-second demo
 
@@ -76,17 +70,22 @@ Duckling:  Let's look. Running it:
 The demo shows one full pass of **Mental Model Mode** — prediction → commit →
 reality → repair → pattern → transfer — with the escape hatch always present.
 
-## Current experiment
+## Mental Model Mode — the experiment
 
-**`studies/experiment-001` — Adaptive hints vs. direct solutions.**
+**Hypothesis:** if an AI, *before* answering a conceptual coding question, makes
+you **predict** what the code does, shows you **reality**, repairs only the
+**mismatch**, then checks the idea on a **new example**, you build a more
+accurate, transferable mental model than if it simply hands you the fix.
 
-A within-subjects study measuring whether graduated hints (vs. immediate
-full solutions) affect (a) task completion time, (b) unaided transfer on
-a follow-up task, and (c) self-reported understanding.
+**What it measures:** each interaction is recorded locally — your prediction,
+confidence, the actual behavior, and whether you got the *transfer* example
+right. The headline outcome is the **transfer rate**: did the concept carry to
+fresh code? (`duckling summary`).
 
-- Status: **protocol drafting / pilot** (see [`studies/experiment-001`](studies/experiment-001))
-- Protocol: [`docs/study-protocols`](docs/study-protocols)
-- Pre-registration and analysis plan: _in progress_
+- Ships now in the [Duckling](packages/claude-code-plugin) plugin as
+  `/duckling:mental-model`.
+- Study protocols: [`docs/study-protocols`](docs/study-protocols) · what's
+  recorded and why: [`docs/privacy.md`](docs/privacy.md).
 
 ## Installation
 
