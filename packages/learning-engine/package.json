@@ -4,6 +4,27 @@
   "description": "Framework-agnostic logic for Waddl's learning-focused interaction patterns: hint laddering, assistance fading, and a lightweight learner model.",
   "license": "Apache-2.0",
   "author": "Carissa Ott",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
   "keywords": [
     "learning-sciences",
     "scaffolding",

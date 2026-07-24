@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "waddl",
+  "displayName": "Waddl",
+  "version": "0.1.0",
+  "description": "Learning-focused coding assistance: adaptive hints, self-explanation prompts, assistance fading, and reflection checkpoints.",
+  "author": {
+    "name": "Carissa Ott",
+    "url": "https://github.com/carissamercedesott"
+  },
+  "homepage": "https://github.com/carissamercedesott/waddl",
+  "repository": "https://github.com/carissamercedesott/waddl",
+  "license": "Apache-2.0",
+  "keywords": [
+    "learning",
+    "education",
+    "adaptive-hints",
+    "self-explanation",
+    "scaffolding",
+    "developer-tools"
+  ]
+}

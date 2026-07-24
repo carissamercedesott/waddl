@@ -22,16 +22,30 @@ builds on.
 The engine is intentionally UI- and vendor-agnostic so the same logic can
 be evaluated across surfaces.
 
-## Planned layout
+## Layout
 
 ```text
 learning-engine/
 ├── src/
-│   ├── hints/          # hint ladder + policy
-│   ├── fading/         # assistance-fading policy
-│   ├── learner-model/  # lightweight competence estimate
-│   └── prompts/        # self-explanation & reflection prompt selection
-└── README.md
+│   ├── index.ts         # public barrel export
+│   ├── types.ts         # shared types (HintLevel, LearnerModel, signals…)
+│   ├── hints/           # hint ladder + starting-level policy
+│   ├── fading/          # assistance-fading policy
+│   ├── learner-model/   # lightweight competence estimate
+│   └── prompts/         # self-explanation & reflection prompt selection
+├── tsconfig.json
+└── package.json
+```
+
+Everything under `src/` is a **typed stub**: the interfaces and function
+signatures are in place and typecheck cleanly, but the bodies return
+documented placeholders and are marked with `@todo`. This lets contributors
+see the intended API surface before the logic exists.
+
+```bash
+npm install
+npm run typecheck   # tsc --noEmit — passes today
+npm run build       # emits dist/ (JS + .d.ts)
 ```
 
 ## Design constraints

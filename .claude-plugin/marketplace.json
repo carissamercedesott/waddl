@@ -1,0 +1,15 @@
+{
+  "name": "waddl",
+  "description": "Learning-focused Claude Code plugins from the Waddl research project.",
+  "owner": {
+    "name": "Carissa Ott",
+    "url": "https://github.com/carissamercedesott"
+  },
+  "plugins": [
+    {
+      "name": "waddl",
+      "source": "./packages/claude-code-plugin",
+      "description": "Learning-focused coding assistance: adaptive hints, self-explanation prompts, assistance fading, and reflection checkpoints."
+    }
+  ]
+}
