@@ -11,9 +11,9 @@ bug runs with plain `node` (so "reality" is a real command), the prediction is a
 clean multiple choice, and the prompt reliably trips the concept gate. Includes a
 step-by-step script, recording tips, and a facilitator answer key.
 
-## [`python-streak-tracker/`](./python-streak-tracker)
+## [`python-shopping-list/`](./python-shopping-list)
 
-A ~40-line intro-Python project (a habit-streak tracker) seeded with two spots
+A ~40-line intro-Python project (a shopping-cart helper) seeded with two spots
 where the obvious mental model is wrong — the classic mutable-default-argument
 bug (with list **aliasing** as its transfer) and a **recursion** base case.
 Work the three tasks with Duckling to see Mental Model Mode fire on real
