@@ -7,9 +7,9 @@
   },
   "plugins": [
     {
-      "name": "waddl",
+      "name": "duckling",
       "source": "./packages/claude-code-plugin",
-      "description": "Learning-focused coding assistance: adaptive hints, self-explanation prompts, assistance fading, and reflection checkpoints."
+      "description": "Mental Model Mode — a learning layer that, before answering a conceptually important question, exposes your mental model, shows reality, repairs the mismatch, and tests whether it transfers. Instant 'Show Answer' escape hatch."
     }
   ]
 }

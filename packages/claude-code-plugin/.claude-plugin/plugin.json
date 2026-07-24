@@ -1,9 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "waddl",
-  "displayName": "Waddl",
+  "name": "duckling",
+  "displayName": "Duckling",
   "version": "0.1.0",
-  "description": "Learn Mode — a learning layer between you and Claude's answer. Before giving a debugging fix or code explanation, it runs a 30–60s guided pass (predict → confidence → hint → attempt → explain → pattern), with an instant 'Show answer' escape hatch.",
+  "description": "A learning layer for Claude Code from the Waddl research project. Before answering a conceptually important question, it runs Mental Model Mode (<1 min): expose your mental model → show reality → repair the mismatch → test whether it transfers. Always has a 'Show Answer' escape hatch.",
   "author": {
     "name": "Carissa Ott",
     "url": "https://github.com/carissamercedesott"
@@ -14,9 +14,9 @@
   "keywords": [
     "learning",
     "education",
-    "adaptive-hints",
-    "self-explanation",
-    "scaffolding",
+    "mental-models",
+    "debugging",
+    "cognitive-science",
     "developer-tools"
   ]
 }

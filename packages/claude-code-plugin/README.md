@@ -1,99 +1,99 @@
-# @waddl/claude-code-plugin
+# Duckling — the Waddl Claude Code plugin
 
-**Learn Mode** — a learning layer that sits between you and Claude's normal
-answer. When you ask for debugging help or ask Claude to explain code, Waddl
-runs a brief (30–60s) guided pass *before* handing you the solution, so you keep
-the thinking that builds understanding. There is always an instant **"Show
-answer"** escape hatch — it never blocks you from getting work done.
+**Mental Model Mode** — a learning layer that sits on top of Claude Code. When
+you ask for debugging help or an explanation that turns on a *concept*, Duckling
+runs a brief (<1 min) interaction *before* the answer, so you build an accurate
+mental model instead of just receiving a fix. There is always an instant
+**"Show Answer"** escape hatch — it never blocks you from shipping.
 
-## Learn Mode — the main skill
+Duckling is the installable plugin; the research project behind it is
+[**Waddl**](../../README.md). This is independent personal work.
 
-`skills/learn/SKILL.md` → **`/waddl:learn`**. It is **model-invoked**: Claude
-runs it automatically when you ask for a debugging fix, ask why a test/error is
-happening, or ask it to explain a specific piece of code. You can also invoke it
-explicitly with `/waddl:learn <your question>`.
+## The interaction
+
+`skills/mental-model/SKILL.md` → **`/duckling:mental-model`**. It is
+**model-invoked**: Claude runs it automatically when a request turns on a
+conceptually important idea (closures, async / the event loop, React state,
+derived state, references, mutation, recursion, memoization, concurrency) — and
+*skips* it for boilerplate, syntax, and typos. You can also invoke it explicitly.
 
 The flow is a small finite state machine, one short step at a time:
 
 ```text
-prediction → confidence → hint → attempt → reflection → pattern
-   "What do    "How        one    "Try it   one specific   "Pattern
-   you think    confident   minimal yourself" question       learned:
-   is happening?" are you?"  hint            about the bug    <chunk>"
+prediction → commit → reality → repair → pattern → transfer
+ "what do    "how      run the   explain   one       a different
+  you think   confident code,     ONLY the  reusable  example —
+  happens?"   are you?" show       mismatch  principle did it
+  (predict)             pred vs                        transfer?
+                        actual"
 ```
 
-Rooted in cognitive science: prediction-before-feedback, a confidence
-(metacognition) check, graduated minimal hints (productive struggle), a hands-on
-attempt (active recall), a targeted self-explanation, and a reusable pattern
-(a new mental chunk). At **every** step the user can say "I don't know" or
-"Show answer." See the project [design principles](../../docs/design-principles.md).
-
-## À la carte skills
-
-Three smaller, explicitly user-invoked skills expose individual steps of the
-flow on demand (marked `disable-model-invocation: true`):
-
-- **`/waddl:hint`** — a graduated hint (nudge → step → solution).
-- **`/waddl:explain`** — a self-explanation prompt.
-- **`/waddl:reflect`** — a reflection checkpoint before starting a task.
+The research loop: **expose the mental model → show reality → repair the
+mismatch → test whether it transfers.** Grounded in cognitive science
+(prediction-before-feedback, confidence as metacognition, minimal repair,
+transfer as the real measure of learning). At **every** step the user can say
+"I don't know", "Skip", or "Show Answer".
 
 ## Layout
 
 ```text
 claude-code-plugin/            # the plugin root
 ├── .claude-plugin/
-│   └── plugin.json            # manifest (name, version, author) — ONLY this goes here
-└── skills/                    # skills, auto-discovered by Claude Code
-    ├── learn/SKILL.md         # /waddl:learn   — the full Learn Mode flow (model-invoked)
-    ├── hint/SKILL.md          # /waddl:hint    — graduated hint (nudge → step → solution)
-    ├── explain/SKILL.md       # /waddl:explain — self-explanation prompt
-    └── reflect/SKILL.md       # /waddl:reflect — reflection checkpoint
+│   └── plugin.json            # manifest — name "duckling" — ONLY this goes here
+└── skills/
+    └── mental-model/SKILL.md  # /duckling:mental-model (model-invoked)
 ```
 
-This follows the structure in the
-[official plugin docs](https://code.claude.com/docs/en/plugins): the manifest
-lives at `.claude-plugin/plugin.json`, and every other directory (`skills/`) is
-at the **plugin root**, not inside `.claude-plugin/`. Each skill is a folder with
-a `SKILL.md`; the folder name becomes the namespaced invocation (`/waddl:learn`).
-
-**Status:** the skills work today as carefully-designed prompt flows. They are
-not yet wired to [`@waddl/learning-engine`](../learning-engine), whose typed
-state machine (`session/`) and hint/prompt logic (`hints/`, `prompts/`) are the
-extension points for future experiments — adaptive hinting, spaced repetition,
-retrieval practice, misconception detection. Also planned: `hooks/hooks.json` to
-offer the flow proactively.
+This follows the [official plugin docs](https://code.claude.com/docs/en/plugins):
+the manifest lives at `.claude-plugin/plugin.json`; everything else is at the
+plugin root. The skill folder name becomes the namespaced invocation.
 
 ## Try it locally
 
-From the repo root, load the plugin directly with `--plugin-dir` (no install):
+From the repo root, load the plugin directly (no install):
 
 ```bash
-claude --plugin-dir ./packages/claude-code-plugin
+claude --plugin-dir ~/Desktop/waddl-oss/packages/claude-code-plugin
 ```
 
-Then trigger Learn Mode — either explicitly, or just by asking for debugging
-help (it's model-invoked, so Claude runs it on its own):
+Then just ask a concept-level question (it's model-invoked), or trigger it
+explicitly:
 
 ```text
-/waddl:learn my useEffect runs on every render even though the deps array is empty
+/duckling:mental-model why does my useState update not show up until the next click?
 ```
 
-Use `/reload-plugins` to pick up edits without restarting. Alternatively, the
-repo ships a marketplace manifest ([`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json)),
-so once it's on GitHub you can add and install it:
+Type **"Show Answer"** any time to bail straight to the solution. Use
+`/reload-plugins` after edits.
+
+## Install from GitHub
+
+The repo ships a marketplace manifest
+([`.claude-plugin/marketplace.json`](../../.claude-plugin/marketplace.json)):
 
 ```text
 /plugin marketplace add carissamercedesott/waddl
-/plugin install waddl@waddl
+```
+```text
+/plugin install duckling@waddl
 ```
 
-Validate the manifest and structure with:
+Validate the manifest and structure:
 
 ```bash
 claude plugin validate ./packages/claude-code-plugin
 ```
 
-## Contributing
+## Architecture & extending it
 
-Interested in building this? See the repo
-[CONTRIBUTING.md](../../CONTRIBUTING.md) and open an issue to coordinate.
+The plugin is the thin, conversational front end. The reusable logic — concept
+detection, the pluggable **intervention** system, intervention selection, prompt
+generation, the session state machine, local storage, and transfer analytics —
+lives in [`@waddl/learning-engine`](../../learning-engine). v1 implements the
+**Prediction** and **Transfer** interventions; every other intervention
+(self-explanation, worked example, progressive hints, execution visualization,
+contrast case, …) is a declared extension point in the engine's registry.
+
+To add a new experiment, implement an `Intervention` and register it — see
+[`docs/interventions.md`](../../docs/interventions.md) and
+[CONTRIBUTING.md](../../CONTRIBUTING.md).

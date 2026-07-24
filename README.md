@@ -4,9 +4,16 @@ Waddl is an open-source research project exploring how AI coding
 tools can support problem-solving without replacing the thinking
 that helps people learn.
 
-The project develops and evaluates interaction patterns such as
-adaptive hints, self-explanation prompts, assistance fading, and
-reflection checkpoints.
+Concretely, Waddl is:
+
+> A research layer that models what the learner understands, chooses a
+> cognitive intervention, and measures whether learning transfers.
+
+It ships as **[Duckling](packages/claude-code-plugin)**, a Claude Code plugin
+whose first interaction is **Mental Model Mode**: before answering a
+conceptually important question, it exposes your mental model, shows reality,
+repairs the mismatch, and tests whether the concept transfers — with an instant
+"Show Answer" escape hatch so it never blocks real work.
 
 ---
 
@@ -38,32 +45,36 @@ invites the learner to explain, predict, or reflect. Concretely we ask:
 ## A 30-second demo
 
 > _Placeholder — a short screen recording / GIF will live here._
-> `docs/` and `website/` will host the hosted version.
 
 ```text
-You:      I need to dedupe this list of user records by email.
+You:       Why does my useState update not show up until the next click?
 
-Waddl:    Before I write it — what makes two records "the same" here?
-          (reflection checkpoint)
+Duckling:  Quick mental-model check first (or say "Show Answer").
+           What do you think `count` is on the line right after setCount?
+           (a) the new value  (b) the old value  (c) undefined
+           [ predict · I don't know · Skip ]                    ← prediction
 
-You:      Same email, case-insensitive.
+You:       (a) the new value
 
-Waddl:    Good. Here's a conceptual hint rather than the full answer:
-          you'll want a Set keyed on the *normalized* email as you
-          iterate. Want the conceptual hint, a worked step, or the
-          full solution?   [ hint · step · solution ]      (adaptive hint)
+Duckling:  How confident?  1–5                                  ← commit
+You:       4
 
-You:      Worked step.
+Duckling:  Let's look. Running it:
+             Your prediction:  count is the new value
+             Actual behavior:  count is still the OLD value here ← reality
 
-Waddl:    ```py
-          seen = set()
-          # normalize before comparing — why lower()?  (self-explanation)
-          ```
+           State updates are scheduled; `count` doesn't change
+           until the next render.                                ← repair
+
+           Pattern — setState schedules a re-render; it doesn't
+           mutate the current variable.                          ← pattern
+
+           Transfer: if you call setCount twice in a row with
+           `setCount(count + 1)`, what's the net change — +1 or +2? ← transfer
 ```
 
-The demo shows three of the interaction patterns — a reflection
-checkpoint, a graduated/adaptive hint, and a self-explanation prompt —
-inside an ordinary coding request.
+The demo shows one full pass of **Mental Model Mode** — prediction → commit →
+reality → repair → pattern → transfer — with the escape hatch always present.
 
 ## Current experiment
 
@@ -85,18 +96,30 @@ The repository is a monorepo:
 
 | Package | What it is |
 | --- | --- |
-| [`packages/claude-code-plugin`](packages/claude-code-plugin) | The Claude Code plugin that delivers the interaction patterns |
-| [`packages/learning-engine`](packages/learning-engine) | Framework-agnostic logic: hint laddering, fading, learner model |
+| [`packages/claude-code-plugin`](packages/claude-code-plugin) | **Duckling** — the Claude Code plugin (Mental Model Mode) |
+| [`packages/learning-engine`](packages/learning-engine) | The research engine: concept detection, interventions, session FSM, storage, analytics |
 | [`packages/experiment-dashboard`](packages/experiment-dashboard) | Dashboard for viewing anonymized study data |
+
+**Install the Duckling plugin** in Claude Code:
+
+```text
+/plugin marketplace add carissamercedesott/waddl
+```
+```text
+/plugin install duckling@waddl
+```
+
+Then ask a concept-level debugging/explanation question, or invoke it directly
+with `/duckling:mental-model`. To hack on it locally instead, clone the repo and
+load the plugin straight from disk:
 
 ```bash
 git clone https://github.com/carissamercedesott/waddl.git
-cd waddl
+claude --plugin-dir ./waddl/packages/claude-code-plugin
 ```
 
-Per-package setup lives in each package's own README (added as the
-packages are implemented). The Claude Code plugin will be installable via
-the plugin marketplace / `/plugin` once it reaches a usable state.
+See the [plugin README](packages/claude-code-plugin) for details and the
+[interventions reference](docs/interventions.md) for how to extend it.
 
 ## Study protocol
 

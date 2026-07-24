@@ -1,129 +1,186 @@
 /**
- * Learning session — the Learn Mode flow modeled as a finite state machine.
+ * Learning session — Mental Model Mode modeled as a finite state machine.
  *
- * The flow is a *swappable sequence of steps* so future experiments can insert,
- * remove, or reorder steps (spaced repetition, transfer problems, retrieval
- * practice, …) without rewriting the driver. The plugin's `learn` skill walks a
- * user through these same states conversationally; this module is the typed,
- * reusable representation for any front end.
+ * The flow is a swappable sequence of steps so future experiments can insert,
+ * remove, or reorder them (add a "retrieval" step, drop "commit", …) without
+ * rewriting the driver. The plugin's `mental-model` skill walks these same
+ * states conversationally; this module is the typed, testable representation for
+ * any front end, and the source of the persisted {@link LearningSession} record.
  *
- * The reducer is real (the FSM is the point), but everything it *decides* —
- * which hint to show, whether to prompt — is delegated to the other engine
- * modules, which are stubbed. See docs/design-principles.md.
+ * The reducer is pure and real (the FSM is the point). What each step *decides*
+ * — which prediction to ask, whether a transfer answer is correct — is delegated
+ * to `interventions/`, `prompts/`, and `intervention-selection/`.
  */
 
-import type { Confidence, ConceptId, HintLevel } from "../types.js";
+import type {
+  Confidence,
+  ConceptId,
+  InterventionKind,
+  LearningSession,
+} from "../types.js";
 
-/** The states of the Learn Mode flow. */
+/** The states of the Mental Model Mode flow. */
 export type LearningStep =
   | "idle"
   | "prediction"
-  | "confidence"
-  | "hint"
-  | "attempt"
-  | "reflection"
+  | "commit"
+  | "reality"
+  | "repair"
   | "pattern"
+  | "transfer"
   | "complete";
 
 /**
- * The default ordered sequence of steps. Experiments can provide an alternative
- * order (e.g. inserting "retrieval" before "prediction") — this array is the
- * single swap point for step composition.
+ * The default ordered sequence of steps. Experiments can define an alternative
+ * order; this array is the single swap point for step composition.
  */
 export const STEP_ORDER: readonly LearningStep[] = [
   "idle",
   "prediction",
-  "confidence",
-  "hint",
-  "attempt",
-  "reflection",
+  "commit",
+  "reality",
+  "repair",
   "pattern",
+  "transfer",
   "complete",
 ];
 
-/** Immutable snapshot of an in-progress learning session. */
+/**
+ * Runtime state of an in-progress session. A superset of {@link LearningSession}
+ * (adds the current `step` and `solutionRevealed`); {@link toRecord} projects it
+ * down to the persisted record.
+ */
 export interface SessionState {
+  id: string;
+  /** Epoch ms, supplied at creation — the engine never reads the clock. */
+  timestamp: number;
   step: LearningStep;
   concept: ConceptId;
-  /** The learner's free-text prediction, or `null` if they said "I don't know". */
+  intervention: InterventionKind;
   prediction: string | null;
   confidence: Confidence | null;
-  /** Highest hint level revealed so far. */
-  hintLevel: HintLevel | null;
-  attempts: number;
-  /** Whether the full solution has been revealed (via success or escape hatch). */
+  actualBehavior: string | null;
+  transferAnswer: string | null;
+  transferCorrect: boolean | null;
+  /** Whether the full solution has been revealed (via reality or the escape hatch). */
   solutionRevealed: boolean;
 }
 
-/** Events that drive the machine. `showAnswer` is the ever-present escape hatch. */
+/**
+ * Events driving the machine. `showAnswer` and `skip` are the ever-present
+ * escape hatches, valid from any step — Waddl never traps the user.
+ */
 export type SessionEvent =
-  | { type: "start"; concept: ConceptId }
+  | { type: "start" }
   | { type: "predict"; prediction: string | null }
-  | { type: "setConfidence"; confidence: Confidence }
-  | { type: "requestHint" }
-  | { type: "attempt" }
-  | { type: "showAnswer" } // escape hatch — valid in ANY step
-  | { type: "reflect" }
+  | { type: "commit"; confidence: Confidence }
+  | { type: "reveal"; actualBehavior: string }
+  | { type: "toPattern" }
+  | { type: "toTransfer" }
+  | { type: "answerTransfer"; answer: string | null; correct: boolean | null }
+  | { type: "showAnswer" } // escape hatch: reveal solution, jump to repair
+  | { type: "skip" } // escape hatch: abandon the flow
   | { type: "reset" };
 
-/** A fresh, idle session for a concept. */
-export function createSession(concept: ConceptId = ""): SessionState {
+export interface CreateSessionArgs {
+  id: string;
+  timestamp: number;
+  concept?: ConceptId;
+}
+
+/** A fresh, idle session. `id` and `timestamp` are caller-supplied. */
+export function createSession({
+  id,
+  timestamp,
+  concept = "",
+}: CreateSessionArgs): SessionState {
   return {
+    id,
+    timestamp,
     step: "idle",
     concept,
+    intervention: "prediction",
     prediction: null,
     confidence: null,
-    hintLevel: null,
-    attempts: 0,
+    actualBehavior: null,
+    transferAnswer: null,
+    transferCorrect: null,
     solutionRevealed: false,
   };
 }
 
-/** The step that follows `step` in {@link STEP_ORDER}, or "complete" at the end. */
+/** The step following `step` in {@link STEP_ORDER}, or "complete" at the end. */
 export function nextStep(step: LearningStep): LearningStep {
   const i = STEP_ORDER.indexOf(step);
   return i >= 0 && i < STEP_ORDER.length - 1 ? STEP_ORDER[i + 1] : "complete";
 }
 
-/**
- * Advance the machine. Pure and side-effect-free: returns a new state.
- *
- * The escape hatch (`showAnswer`) is honored from any step — it reveals the
- * solution and jumps to reflection, never blocking the user. Deciding *which*
- * hint text or *which* reflection question to show is the job of the `hints/`
- * and `prompts/` modules (stubbed), not this reducer.
- */
+/** Advance the machine. Pure and side-effect-free: returns a new state. */
 export function reduce(state: SessionState, event: SessionEvent): SessionState {
   switch (event.type) {
     case "start":
-      return { ...createSession(event.concept), step: "prediction" };
+      return { ...state, step: "prediction", intervention: "prediction" };
 
     case "predict":
-      return { ...state, prediction: event.prediction, step: "confidence" };
+      return { ...state, prediction: event.prediction, step: "commit" };
 
-    case "setConfidence":
-      return { ...state, confidence: event.confidence, step: "hint" };
+    case "commit":
+      return { ...state, confidence: event.confidence, step: "reality" };
 
-    case "requestHint":
-      // Escalation of the concrete hint level lives in hints/ (stubbed here).
-      return { ...state, step: "hint" };
+    case "reveal":
+      return {
+        ...state,
+        actualBehavior: event.actualBehavior,
+        solutionRevealed: true,
+        step: "repair",
+      };
 
-    case "attempt":
-      return { ...state, attempts: state.attempts + 1, step: "attempt" };
-
-    case "showAnswer": // escape hatch from any step
-      return { ...state, solutionRevealed: true, step: "reflection" };
-
-    case "reflect":
+    case "toPattern":
       return { ...state, step: "pattern" };
 
+    case "toTransfer":
+      return { ...state, step: "transfer", intervention: "transfer" };
+
+    case "answerTransfer":
+      return {
+        ...state,
+        transferAnswer: event.answer,
+        transferCorrect: event.correct,
+        step: "complete",
+      };
+
+    case "showAnswer": // escape hatch — reveal and jump straight to repair
+      return { ...state, solutionRevealed: true, step: "repair" };
+
+    case "skip": // escape hatch — abandon the flow entirely
+      return { ...state, step: "complete" };
+
     case "reset":
-      return createSession(state.concept);
+      return createSession({
+        id: state.id,
+        timestamp: state.timestamp,
+        concept: state.concept,
+      });
 
     default: {
-      // Exhaustiveness guard — a new event type will surface here at compile time.
+      // Exhaustiveness guard — a new event type surfaces here at compile time.
       const _never: never = event;
       return _never;
     }
   }
+}
+
+/** Project runtime state down to the persisted research record. */
+export function toRecord(state: SessionState): LearningSession {
+  return {
+    id: state.id,
+    timestamp: state.timestamp,
+    concept: state.concept,
+    intervention: state.intervention,
+    prediction: state.prediction,
+    confidence: state.confidence,
+    actualBehavior: state.actualBehavior,
+    transferAnswer: state.transferAnswer,
+    transferCorrect: state.transferCorrect,
+  };
 }

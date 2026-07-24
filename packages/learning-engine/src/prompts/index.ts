@@ -1,36 +1,51 @@
 /**
- * Prompt selection — decide *whether* and *which* metacognitive prompt
- * (self-explanation or reflection) is worth surfacing at a given moment
- * (docs/design-principles.md §5). Prompts that the learner resents are prompts
- * that failed, so the bar for showing one should be meaningful.
+ * Prompt generation — turn a (concept, intervention) pair into a structured
+ * {@link PromptSpec} a front end can render. Kept separate from intervention
+ * *selection* (which decides WHICH intervention) and from the interventions
+ * themselves (which own scoring), so any of the three can change independently.
  *
- * STATUS: stubbed.
+ * In the live plugin the wording is ultimately produced by Claude against the
+ * `SKILL.md` instructions; these templates are the canonical specification of
+ * what each prompt must contain, and are what a programmatic runtime or the
+ * future React app would render directly.
  */
 
-import type { AssistContext, LearnerModel, PromptKind } from "../types.js";
-import { estimateCompetence } from "../learner-model/index.js";
+import { getConcept } from "../concepts.js";
+import type { ConceptId, PromptSpec } from "../types.js";
 
-/** A prompt the engine has decided to surface, or `null` to stay silent. */
-export interface PromptDecision {
-  kind: PromptKind;
-  /** Why this prompt was chosen — useful for logging and study analysis. */
-  rationale: string;
+/** The escape hatch text shown on every prompt — Waddl never traps the user. */
+export const ESCAPE_HATCH = "Skip · Show Answer";
+
+function conceptLabel(concept: ConceptId): string {
+  return getConcept(concept)?.label ?? concept;
 }
 
 /**
- * Decide whether to surface a metacognitive prompt.
- *
- * STUB: always returns `null` (surface nothing). Returning `null` is the safe
- * default — it means "don't interrupt." A real implementation would weigh the
- * learner model, recent prompt frequency (avoid over-prompting), and the
- * moment's value.
- *
- * @todo Implement selection; ensure it never over-prompts.
+ * Prediction prompt — expose the learner's current mental model BEFORE any
+ * explanation. Multiple choice is preferred; the concrete options are filled in
+ * by the runtime from the actual code, so the template leaves them empty.
  */
-export function selectPrompt(
-  model: LearnerModel,
-  context: AssistContext,
-): PromptDecision | null {
-  void estimateCompetence(model, context.concept); // referenced to document intent
-  return null;
+export function generatePredictionPrompt(concept: ConceptId): PromptSpec {
+  return {
+    text: `Before I explain — what do you think happens here? (${conceptLabel(
+      concept,
+    )}) Predict the output, the value received, or which branch runs.`,
+    // Runtime fills `choices` from the real code; multiple choice is preferred.
+    choices: [],
+    escapeHatch: ESCAPE_HATCH,
+  };
+}
+
+/**
+ * Transfer prompt — a DIFFERENT small example testing the same concept, to
+ * check whether the idea carried over rather than being memorized.
+ */
+export function generateTransferPrompt(concept: ConceptId): PromptSpec {
+  return {
+    text: `Quick transfer check — here's a different ${conceptLabel(
+      concept,
+    )} example. Same idea, new code: what does it do?`,
+    choices: [],
+    escapeHatch: ESCAPE_HATCH,
+  };
 }

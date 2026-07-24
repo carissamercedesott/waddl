@@ -23,7 +23,7 @@ export type PromptKind = "self-explanation" | "reflection";
 
 /**
  * Self-reported confidence, 1–5 (1 = very unsure … 5 = very confident).
- * Captured in the Learn Mode flow's confidence step.
+ * Captured in the Mental Model Mode flow's commit step.
  */
 export type Confidence = 1 | 2 | 3 | 4 | 5;
 
@@ -72,4 +72,63 @@ export interface AssistContext {
   concept: ConceptId;
   /** Whether the learner explicitly asked for help. */
   requested: boolean;
+}
+
+/**
+ * A cognitive intervention the engine can run. Only `prediction` and `transfer`
+ * are implemented in v1; the rest are registered as extension points (see
+ * `interventions/registry.ts`). Adding a new intervention is the primary way to
+ * extend Waddl with a new experiment.
+ */
+export type InterventionKind =
+  | "prediction"
+  | "transfer"
+  | "self-explanation"
+  | "worked-example"
+  | "progressive-hints"
+  | "execution-visualization"
+  | "contrast-case";
+
+/** One option in a multiple-choice prompt (preferred for prediction). */
+export interface PromptChoice {
+  id: string;
+  label: string;
+}
+
+/**
+ * A structured prompt to present to the learner. Front ends (the plugin skill,
+ * a future React app) render this; the engine never renders UI itself.
+ */
+export interface PromptSpec {
+  /** The single question or instruction to present. */
+  text: string;
+  /** Multiple-choice options, when the intervention prefers them. */
+  choices?: PromptChoice[];
+  /** The always-available escape hatch, e.g. "Skip" / "Show Answer". */
+  escapeHatch: string;
+}
+
+/**
+ * The persisted record of one learning interaction. This is the unit of
+ * research data — it is what `storage/` saves and what `analytics/` will read.
+ * Kept minimal and non-identifying by design (see docs/privacy.md).
+ */
+export interface LearningSession {
+  id: string;
+  /** Epoch milliseconds. Supplied by the caller — the engine never reads the clock. */
+  timestamp: number;
+  concept: ConceptId;
+  intervention: InterventionKind;
+  /** The learner's prediction (free text or a choice id), or null if skipped. */
+  prediction: string | null;
+  confidence: Confidence | null;
+  /** What the code actually did, revealed in the "reality" step. */
+  actualBehavior: string | null;
+  /** The learner's answer to the transfer question, or null if not reached. */
+  transferAnswer: string | null;
+  /**
+   * Whether the concept appeared to transfer to the new example. `null` until a
+   * transfer check has been run and graded. The core research outcome.
+   */
+  transferCorrect: boolean | null;
 }
